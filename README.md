@@ -62,7 +62,7 @@ Rasio  : 47.16% dari ukuran asli
 **1. Clone repositori**
 
 ```bash
-git clone https://github.com/username/arithmetic-coding.git
+https://github.com/ifmdk636/Arithmetic_Coding_Web_Flask.git
 cd arithmetic-coding
 ```
 
