@@ -1,0 +1,983 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Arithmetic Coding — Pembelajaran Interaktif</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0a0a0f;
+        --surface: #111118;
+        --card: #16161f;
+        --border: #2a2a3a;
+        --accent: #7c6dfa;
+        --accent2: #f97316;
+        --accent3: #22d3ee;
+        --text: #e8e8f0;
+        --muted: #6b6b85;
+        --green: #4ade80;
+        --red: #f87171;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Syne", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      .mono {
+        font-family: "Space Mono", monospace;
+      }
+
+      /* Grid background */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(124, 109, 250, 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(124, 109, 250, 0.04) 1px, transparent 1px);
+        background-size: 40px 40px;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .glow-orb {
+        position: fixed;
+        width: 500px;
+        height: 500px;
+        border-radius: 50%;
+        filter: blur(120px);
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .orb1 {
+        background: rgba(124, 109, 250, 0.12);
+        top: -100px;
+        left: -100px;
+      }
+      .orb2 {
+        background: rgba(249, 115, 22, 0.08);
+        bottom: -100px;
+        right: -100px;
+      }
+
+      .container {
+        position: relative;
+        z-index: 1;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+
+      /* Header */
+      header {
+        padding: 40px 0 0;
+        text-align: center;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 14px;
+        background: rgba(124, 109, 250, 0.15);
+        border: 1px solid rgba(124, 109, 250, 0.3);
+        border-radius: 100px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 20px;
+      }
+
+      h1 {
+        font-size: clamp(2.2rem, 5vw, 3.8rem);
+        font-weight: 800;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+      }
+
+      .gradient-text {
+        background: linear-gradient(
+          135deg,
+          #7c6dfa 0%,
+          #f97316 50%,
+          #22d3ee 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        font-size: 1rem;
+        margin-top: 12px;
+        font-weight: 400;
+      }
+
+      /* Cards */
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 28px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(124, 109, 250, 0.5),
+          transparent
+        );
+      }
+
+      .section-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 12px;
+      }
+
+      /* Input */
+      .input-wrapper {
+        position: relative;
+      }
+
+      .text-input {
+        width: 100%;
+        background: var(--surface);
+        border: 2px solid var(--border);
+        border-radius: 12px;
+        padding: 16px 20px;
+        font-family: "Space Mono", monospace;
+        font-size: 15px;
+        color: var(--text);
+        outline: none;
+        transition: border-color 0.2s;
+        letter-spacing: 0.03em;
+      }
+
+      .text-input:focus {
+        border-color: var(--accent);
+      }
+      .text-input::placeholder {
+        color: var(--muted);
+      }
+
+      .char-count {
+        position: absolute;
+        right: 14px;
+        bottom: 14px;
+        font-family: "Space Mono", monospace;
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      /* Button */
+      .btn-encode {
+        width: 100%;
+        padding: 15px 24px;
+        background: linear-gradient(135deg, var(--accent) 0%, #5b4fd4 100%);
+        border: none;
+        border-radius: 12px;
+        color: white;
+        font-family: "Syne", sans-serif;
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+        transition: all 0.2s;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .btn-encode::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.1) 0%,
+          transparent 100%
+        );
+      }
+
+      .btn-encode:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(124, 109, 250, 0.4);
+      }
+      .btn-encode:active {
+        transform: translateY(0);
+      }
+      .btn-encode:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      /* Stat boxes */
+      .stat-box {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+      }
+
+      .stat-value {
+        font-family: "Space Mono", monospace;
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1;
+      }
+
+      .stat-label {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 6px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      /* Bitstream display */
+      .bitstream-display {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        font-family: "Space Mono", monospace;
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        line-height: 1.8;
+        word-break: break-all;
+        max-height: 150px;
+        overflow-y: auto;
+      }
+
+      .bit-0 {
+        color: var(--accent3);
+      }
+      .bit-1 {
+        color: var(--accent2);
+      }
+
+      /* Table */
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      .data-table th {
+        font-family: "Space Mono", monospace;
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding: 8px 12px;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .data-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(42, 42, 58, 0.5);
+        font-family: "Space Mono", monospace;
+        font-size: 12px;
+      }
+
+      .data-table tr:last-child td {
+        border-bottom: none;
+      }
+      .data-table tr:hover td {
+        background: rgba(124, 109, 250, 0.05);
+      }
+
+      .symbol-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        background: rgba(124, 109, 250, 0.15);
+        border: 1px solid rgba(124, 109, 250, 0.3);
+        border-radius: 6px;
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 13px;
+      }
+
+      /* Steps table scroll */
+      .steps-wrapper {
+        max-height: 320px;
+        overflow-y: auto;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+      }
+
+      .steps-wrapper::-webkit-scrollbar {
+        width: 6px;
+      }
+      .steps-wrapper::-webkit-scrollbar-track {
+        background: var(--surface);
+      }
+      .steps-wrapper::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
+      }
+
+      /* Range bar */
+      .range-bar-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .range-bar {
+        flex: 1;
+        height: 8px;
+        background: var(--border);
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .range-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent), var(--accent3));
+        border-radius: 4px;
+        transition: width 0.3s;
+      }
+
+      /* Error */
+      .error-box {
+        background: rgba(248, 113, 113, 0.1);
+        border: 1px solid rgba(248, 113, 113, 0.3);
+        border-radius: 12px;
+        padding: 14px 18px;
+        color: var(--red);
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      /* Loading spinner */
+      .spinner {
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        display: inline-block;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Fade in */
+      .fade-in {
+        animation: fadeIn 0.4s ease forwards;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(16px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Tab */
+      .tab-btn {
+        padding: 8px 18px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        cursor: pointer;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--muted);
+        transition: all 0.2s;
+      }
+
+      .tab-btn.active {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: white;
+      }
+
+      .tab-panel {
+        display: none;
+      }
+      .tab-panel.active {
+        display: block;
+      }
+
+      /* Scrollbar global */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: var(--bg);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
+      }
+
+      /* Copy button */
+      .copy-btn {
+        padding: 6px 14px;
+        background: rgba(124, 109, 250, 0.15);
+        border: 1px solid rgba(124, 109, 250, 0.3);
+        border-radius: 8px;
+        color: var(--accent);
+        font-family: "Space Mono", monospace;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .copy-btn:hover {
+        background: rgba(124, 109, 250, 0.25);
+      }
+
+      /* Compression bar */
+      .compression-track {
+        height: 12px;
+        background: var(--border);
+        border-radius: 6px;
+        overflow: hidden;
+        margin-top: 8px;
+      }
+      .compression-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--green), var(--accent3));
+        border-radius: 6px;
+        transition: width 0.6s ease;
+      }
+
+      /* Example buttons */
+      .example-btn {
+        padding: 6px 14px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text);
+        font-family: "Space Mono", monospace;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .example-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="glow-orb orb1"></div>
+    <div class="glow-orb orb2"></div>
+
+    <div class="container pb-16">
+      <!-- Header -->
+      <header class="mb-10">
+        <div class="badge"><span>⬡</span> Kompresi Data</div>
+        <h1>Arithmetic<br /><span class="gradient-text">Coding</span></h1>
+        <p class="subtitle">
+          Simulasi interaktif algoritma kompresi berbasis rentang probabilitas
+        </p>
+      </header>
+
+      <!-- Algoritma Info -->
+      <div
+        class="card mb-6"
+        style="
+          background: linear-gradient(
+            135deg,
+            rgba(124, 109, 250, 0.08) 0%,
+            rgba(34, 211, 238, 0.05) 100%
+          );
+        "
+      >
+        <div class="section-label">Cara Kerja</div>
+        <div
+          class="grid gap-4"
+          style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))"
+        >
+          <div>
+            <div
+              style="color: var(--accent); font-size: 22px; margin-bottom: 6px"
+            >
+              ①
+            </div>
+            <div style="font-weight: 700; font-size: 14px">
+              Hitung Frekuensi
+            </div>
+            <div style="color: var(--muted); font-size: 13px; margin-top: 4px">
+              Setiap simbol dihitung kemunculannya untuk membentuk distribusi
+              probabilitas.
+            </div>
+          </div>
+          <div>
+            <div
+              style="color: var(--accent2); font-size: 22px; margin-bottom: 6px"
+            >
+              ②
+            </div>
+            <div style="font-weight: 700; font-size: 14px">
+              Rentang Kumulatif
+            </div>
+            <div style="color: var(--muted); font-size: 13px; margin-top: 4px">
+              Interval [0,1) dibagi sesuai probabilitas kumulatif masing-masing
+              simbol.
+            </div>
+          </div>
+          <div>
+            <div
+              style="color: var(--accent3); font-size: 22px; margin-bottom: 6px"
+            >
+              ③
+            </div>
+            <div style="font-weight: 700; font-size: 14px">
+              Penyempitan Range
+            </div>
+            <div style="color: var(--muted); font-size: 13px; margin-top: 4px">
+              Setiap simbol mempersempit interval sebelumnya ke sub-range yang
+              sesuai.
+            </div>
+          </div>
+          <div>
+            <div
+              style="color: var(--green); font-size: 22px; margin-bottom: 6px"
+            >
+              ④
+            </div>
+            <div style="font-weight: 700; font-size: 14px">Output Bit</div>
+            <div style="color: var(--muted); font-size: 13px; margin-top: 4px">
+              Bit dikeluarkan saat MSB stabil, dengan E3 scaling untuk mencegah
+              underflow.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input Section -->
+      <div class="card mb-6">
+        <div class="section-label">Input Teks</div>
+        <div class="input-wrapper mb-4">
+          <input
+            id="textInput"
+            class="text-input"
+            type="text"
+            placeholder="Ketik teks di sini... (contoh: abracadabra)"
+            maxlength="200"
+          />
+          <span class="char-count mono" id="charCount">0 / 200</span>
+        </div>
+
+        <div
+          style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px"
+        >
+          <span style="font-size: 12px; color: var(--muted); align-self: center"
+            >Contoh:</span
+          >
+          <button class="example-btn" onclick="setExample('abracadabra')">
+            abracadabra
+          </button>
+          <button class="example-btn" onclick="setExample('hello world')">
+            hello world
+          </button>
+          <button class="example-btn" onclick="setExample('banana')">
+            banana
+          </button>
+          <button class="example-btn" onclick="setExample('mississippi')">
+            mississippi
+          </button>
+          <button class="example-btn" onclick="setExample('aaabbbccc')">
+            aaabbbccc
+          </button>
+        </div>
+
+        <button class="btn-encode" id="encodeBtn" onclick="encode()">
+          <span id="btnText">Mulai Encoding ⟶</span>
+        </button>
+      </div>
+
+      <!-- Error -->
+      <div id="errorBox" class="error-box mb-6" style="display: none">
+        <span>⚠</span>
+        <span id="errorMsg"></span>
+      </div>
+
+      <!-- Results -->
+      <div id="results" style="display: none">
+        <!-- Stats Row -->
+        <div
+          class="grid gap-4 mb-6"
+          style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr))"
+          id="statsRow"
+        ></div>
+
+        <!-- Tabs -->
+        <div class="card mb-6">
+          <div class="flex gap-2 mb-6" id="tabBar">
+            <button class="tab-btn active" onclick="switchTab('bitstream')">
+              Bitstream
+            </button>
+            <button class="tab-btn" onclick="switchTab('probTable')">
+              Tabel Probabilitas
+            </button>
+            <button class="tab-btn" onclick="switchTab('steps')">
+              Langkah Encoding
+            </button>
+          </div>
+
+          <!-- Bitstream Tab -->
+          <div class="tab-panel active" id="tab-bitstream">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 12px;
+              "
+            >
+              <div>
+                <span style="font-size: 13px; color: var(--muted)">
+                  <span class="bit-0">■ 0</span> &nbsp;
+                  <span class="bit-1">■ 1</span>
+                </span>
+              </div>
+              <button class="copy-btn" onclick="copyBitstream()">
+                Salin Bitstream
+              </button>
+            </div>
+            <div class="bitstream-display" id="bitstreamDisplay"></div>
+
+            <div style="margin-top: 20px">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  font-size: 13px;
+                  margin-bottom: 6px;
+                "
+              >
+                <span style="color: var(--muted)">Rasio Kompresi</span>
+                <span
+                  class="mono"
+                  id="compressionLabel"
+                  style="color: var(--green)"
+                ></span>
+              </div>
+              <div class="compression-track">
+                <div
+                  class="compression-fill"
+                  id="compressionFill"
+                  style="width: 0%"
+                ></div>
+              </div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  font-size: 11px;
+                  color: var(--muted);
+                  margin-top: 6px;
+                "
+              >
+                <span id="compLeft"></span>
+                <span id="compRight"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Probability Table Tab -->
+          <div class="tab-panel" id="tab-probTable">
+            <div class="steps-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Simbol</th>
+                    <th>Frek.</th>
+                    <th>Prob.</th>
+                    <th>Cum. Low</th>
+                    <th>Cum. High</th>
+                    <th>Range Low</th>
+                    <th>Range High</th>
+                  </tr>
+                </thead>
+                <tbody id="probTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Steps Tab -->
+          <div class="tab-panel" id="tab-steps">
+            <p
+              style="color: var(--muted); font-size: 13px; margin-bottom: 12px"
+            >
+              Proses penyempitan interval untuk setiap simbol input (nilai
+              integer dalam skala 0–65535):
+            </p>
+            <div class="steps-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Simbol</th>
+                    <th>Low (before)</th>
+                    <th>High (before)</th>
+                    <th>Low (after)</th>
+                    <th>High (after)</th>
+                    <th>Range [0,1)</th>
+                  </tr>
+                </thead>
+                <tbody id="stepsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div
+        style="
+          text-align: center;
+          color: var(--muted);
+          font-size: 12px;
+          margin-top: 40px;
+        "
+      >
+        <span class="mono">Arithmetic Coding</span> · Precision 16-bit ·
+        E1/E2/E3 Scaling
+      </div>
+    </div>
+
+    <script>
+      const textInput = document.getElementById("textInput");
+      const charCount = document.getElementById("charCount");
+
+      textInput.addEventListener("input", () => {
+        charCount.textContent = `${textInput.value.length} / 200`;
+      });
+
+      textInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") encode();
+      });
+
+      function setExample(text) {
+        textInput.value = text;
+        charCount.textContent = `${text.length} / 200`;
+        textInput.focus();
+      }
+
+      function switchTab(name) {
+        document.querySelectorAll(".tab-btn").forEach((b, i) => {
+          b.classList.toggle(
+            "active",
+            b.getAttribute("onclick").includes(name),
+          );
+        });
+        document.querySelectorAll(".tab-panel").forEach((p) => {
+          p.classList.toggle("active", p.id === "tab-" + name);
+        });
+      }
+
+      async function encode() {
+        const text = textInput.value.trim();
+        const btn = document.getElementById("encodeBtn");
+        const btnText = document.getElementById("btnText");
+        const errorBox = document.getElementById("errorBox");
+        const results = document.getElementById("results");
+
+        errorBox.style.display = "none";
+        results.style.display = "none";
+        btn.disabled = true;
+        btnText.innerHTML = '<span class="spinner"></span> Memproses...';
+
+        try {
+          const res = await fetch("/encode", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text }),
+          });
+
+          const data = await res.json();
+
+          if (!data.success) {
+            errorBox.style.display = "flex";
+            document.getElementById("errorMsg").textContent = data.error;
+            return;
+          }
+
+          renderResults(data);
+          results.style.display = "block";
+          results.classList.add("fade-in");
+        } catch (e) {
+          errorBox.style.display = "flex";
+          document.getElementById("errorMsg").textContent =
+            "Gagal terhubung ke server.";
+        } finally {
+          btn.disabled = false;
+          btnText.innerHTML = "Mulai Encoding ⟶";
+        }
+      }
+
+      function renderResults(data) {
+        // Stats
+        const statsColors = [
+          "var(--accent)",
+          "var(--accent2)",
+          "var(--accent3)",
+          "var(--green)",
+        ];
+        const stats = [
+          {
+            label: "Total Karakter",
+            value: data.total_chars,
+            color: statsColors[0],
+          },
+          {
+            label: "Panjang Bitstream",
+            value: data.bit_length + " bit",
+            color: statsColors[1],
+          },
+          {
+            label: "Entropi",
+            value: data.entropy + " bit",
+            color: statsColors[2],
+          },
+          {
+            label: "Original",
+            value: data.original_bits + " bit",
+            color: statsColors[3],
+          },
+        ];
+        const statsRow = document.getElementById("statsRow");
+        statsRow.innerHTML = stats
+          .map(
+            (s) => `
+      <div class="stat-box fade-in">
+        <div class="stat-value" style="color:${s.color}">${s.value}</div>
+        <div class="stat-label">${s.label}</div>
+      </div>
+    `,
+          )
+          .join("");
+
+        // Bitstream
+        const bs = data.bitstream;
+        const colored = bs
+          .split("")
+          .map((b) => `<span class="bit-${b}">${b}</span>`)
+          .join("");
+        document.getElementById("bitstreamDisplay").innerHTML = colored;
+
+        // Compression
+        const ratio = data.compression_ratio;
+        const saved = 100 - ratio;
+        document.getElementById("compressionLabel").textContent =
+          ratio + "% ukuran asli";
+        document.getElementById("compressionFill").style.width =
+          Math.min(100, ratio) + "%";
+        document.getElementById("compLeft").textContent =
+          `${data.bit_length} bit terkompresi`;
+        document.getElementById("compRight").textContent =
+          `${data.original_bits} bit asli (${saved.toFixed(1)}% dihemat)`;
+
+        // Probability Table
+        const probBody = document.getElementById("probTableBody");
+        probBody.innerHTML = data.prob_table
+          .map(
+            (row) => `
+      <tr>
+        <td><span class="symbol-chip">${row.symbol}</span></td>
+        <td style="color:var(--accent2)">${row.freq}</td>
+        <td style="color:var(--accent)">${row.prob}</td>
+        <td class="mono" style="color:var(--muted)">${row.cum_low}</td>
+        <td class="mono" style="color:var(--muted)">${row.cum_high}</td>
+        <td style="color:var(--accent3)">${row.range_low}</td>
+        <td style="color:var(--accent3)">${row.range_high}</td>
+      </tr>
+    `,
+          )
+          .join("");
+
+        // Steps Table
+        const stepsBody = document.getElementById("stepsTableBody");
+        stepsBody.innerHTML = data.encoding_steps
+          .map((s, i) => {
+            const rangeWidth = ((s.high_norm - s.low_norm) * 100).toFixed(4);
+            return `
+        <tr>
+          <td style="color:var(--muted)">${s.step}</td>
+          <td><span class="symbol-chip">${s.char}</span></td>
+          <td class="mono" style="color:var(--muted); font-size:11px">${s.low_before}</td>
+          <td class="mono" style="color:var(--muted); font-size:11px">${s.high_before}</td>
+          <td class="mono" style="color:var(--accent); font-size:11px">${s.low_after}</td>
+          <td class="mono" style="color:var(--accent2); font-size:11px">${s.high_after}</td>
+          <td>
+            <div class="range-bar-wrap">
+              <div class="range-bar">
+                <div class="range-fill" style="width:${Math.max(0.5, Math.min(100, parseFloat(rangeWidth)))}%"></div>
+              </div>
+              <span style="font-size:10px; color:var(--muted); font-family:'Space Mono',monospace; white-space:nowrap;">${s.low_norm}–${s.high_norm}</span>
+            </div>
+          </td>
+        </tr>
+      `;
+          })
+          .join("");
+
+        // Reset to first tab
+        switchTab("bitstream");
+      }
+
+      function copyBitstream() {
+        const bs = document.getElementById("bitstreamDisplay").textContent;
+        navigator.clipboard.writeText(bs).then(() => {
+          const btn = document.querySelector(".copy-btn");
+          btn.textContent = "Tersalin ✓";
+          setTimeout(() => (btn.textContent = "Salin Bitstream"), 2000);
+        });
+      }
+    </script>
+  </body>
+</html>
